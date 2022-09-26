@@ -1,78 +1,6 @@
 import pygame
 from sys import exit
-from random import randint, choice
-
-class Player(pygame.sprite.Sprite):
-    def __init__(self):
-        super().__init__()
-        player_walk_1 = pygame.image.load('graphics/charactertest3.png').convert_alpha()
-        player_walk_2 = pygame.image.load('graphics/player_walk_2.png').convert_alpha()
-        self.player_walk = [player_walk_1,player_walk_2]
-        self.player_index = 0
-        self.player_jump = pygame.image.load('graphics/player_jump.png').convert_alpha()
-
-        self.image = self.player_walk[self.player_index]
-        self.rect = self.image.get_rect(midbottom = (80,415))
-        self.gravity = 0
-
-    def player_input(self):
-        keys = pygame.key.get_pressed()
-        if keys[pygame.K_SPACE] and self.rect.bottom >= 415:
-            self.gravity = -20
-    
-    def apply_gravity(self):
-        self.gravity += 1
-        self.rect.y += self.gravity
-        if self.rect.bottom >= 415:
-            self.rect.bottom = 415
-
-    def animation_state(self):
-        if self.rect.bottom < 415:
-            self.image = self.player_jump
-        else:
-            self.player_index += 0.1
-            if self.player_index >= len(self.player_walk):
-                self.player_index = 0
-            self.image = self.player_walk[int(self.player_index)]
-
-    def update(self):
-        self.player_input()
-        self.apply_gravity()
-        self.animation_state() #VERY IMPORTANT, calls all the player methods in the class when player_update() is called
-        
-class Obstacle(pygame.sprite.Sprite):
-    def __init__(self,type):
-        super().__init__()
-        
-        if type == 'fly':
-            enemyfly_frame1 = pygame.image.load('graphics/fly_1.png').convert_alpha()
-            enemyfly_frame2 = pygame.image.load('graphics/fly_2.png').convert_alpha()
-            self.frames = [enemyfly_frame1,enemyfly_frame2]
-            y_pos = 300
-        else:
-            enemy_frame_1 = pygame.image.load('graphics/enemy.png').convert_alpha()
-            enemy_frame_2 = pygame.image.load('graphics/enemy_2.png').convert_alpha()
-            self.frames = [enemy_frame_1,enemy_frame_2]
-            y_pos = 415
-
-        self.animation_index = 0
-        self.image = self.frames[self.animation_index]
-        self.rect = self.image.get_rect(midbottom = (randint(900,1100),y_pos))
-
-    def animation_state(self):
-        self.animation_index += 0.1
-        if self.animation_index >= len(self.frames):
-            self.animation_index = 0
-        self.image = self.frames[int(self.animation_index)]
-
-    def update(self):
-        self.animation_state()
-        self.rect.x -= 6
-        self.destroy
-    
-    def destroy(self):
-        if self.rect.x <= -100:
-            self.kill()
+from random import randint
 
 def display_score():
     current_time = int(pygame.time.get_ticks() / 1000) - start_time
@@ -105,14 +33,6 @@ def collisions(player,obstacles):
                 return False
     return True
 
-def collision_sprite(): 
-    #spritecollude(sprite,group,bool) #True means that enemy will be deleted when collided, False means it will not be deleted (?)
-    if pygame.sprite.spritecollide(player.sprite,obstacle_group,False):
-        obstacle_group.empty() #deletes the enemy when collided so that the game can stop
-        return False
-    else:
-        return True
-
 def player_animation():
     global player_surface, player_index
 
@@ -131,14 +51,9 @@ screen = pygame.display.set_mode((800,500))
 pygame.display.set_caption('Pygame Practice Game')
 clock = pygame.time.Clock()
 test_font = pygame.font.Font('fonts/atari-font-full-version/atari_full.ttf', 25) #(font type, font size)
-game_active = False
+game_active = True
 start_time = 0
 score = 0
-
-#Groups
-player = pygame.sprite.GroupSingle()
-player.add(Player())
-obstacle_group = pygame.sprite.Group()
 
 sky_surface = pygame.image.load('graphics/cloudbackground.webp').convert()
 ground_surface = pygame.image.load('graphics/ground.png').convert()
@@ -221,11 +136,10 @@ while True:
         
         if game_active:
             if event.type == obstacle_timer:
-                obstacle_group.add(Obstacle(choice(['fly', 'snail', 'snail'])))
-                #if randint(0,2):
-                 #   obstacle_rect_list.append(enemy_surface.get_rect(midbottom = (randint(900, 1100), 415)))
-                #else:
-                 #   obstacle_rect_list.append(enemyfly_surface.get_rect(midbottom = (randint(900, 1100), 300)))
+                if randint(0,2):
+                    obstacle_rect_list.append(enemy_surface.get_rect(midbottom = (randint(900, 1100), 415)))
+                else:
+                    obstacle_rect_list.append(enemyfly_surface.get_rect(midbottom = (randint(900, 1100), 300)))
 
             if event.type == enemy_animation_timer:
                 if enemy_frame_index == 0:
@@ -267,24 +181,18 @@ while True:
         # #moves the player by grabbing the left of the rectangle and moving it one pixel, you can also print player_rect.left to get the actual positon of the rectangle
         
         #Player
-        #player_gravity += 1
-        #player_rect.y += player_gravity
-        #if player_rect.bottom >= 415:
-        #    player_rect.bottom = 415
-        #player_animation()
-        #screen.blit(player_surface, player_rect)
-        player.draw(screen)
-        player.update() #UPDATES EVERYTHING FOR THE PLAYEER CLASS ALL IN ONE LINE
-
-        obstacle_group.draw(screen)
-        obstacle_group.update()
+        player_gravity += 1
+        player_rect.y += player_gravity
+        if player_rect.bottom >= 415:
+            player_rect.bottom = 415
+        player_animation()
+        screen.blit(player_surface, player_rect)
 
         #obstacle movement
-       # obstacle_rect_list = obstacle_movement(obstacle_rect_list)
+        obstacle_rect_list = obstacle_movement(obstacle_rect_list)
 
         #collision
-        game_active = collision_sprite()
-        #game_active = collisions(player_rect,obstacle_rect_list)
+        game_active = collisions(player_rect,obstacle_rect_list)
 
     else:
         screen.fill((94,129,162))
